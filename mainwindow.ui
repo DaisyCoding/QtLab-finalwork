@@ -124,7 +124,7 @@
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="MainPage">
          <layout class="QGridLayout" name="gridLayout">
@@ -368,12 +368,17 @@
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_21">
             <item>
-             <widget class="QPushButton" name="pushButton">
+             <widget class="QPushButton" name="AllOpenCurtainButton">
               <property name="maximumSize">
                <size>
                 <width>100</width>
                 <height>16777215</height>
                </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
               </property>
               <property name="text">
                <string>全开</string>
@@ -394,12 +399,17 @@
              </spacer>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_2">
+             <widget class="QPushButton" name="AllCloseCurtainButton">
               <property name="maximumSize">
                <size>
                 <width>100</width>
                 <height>16777215</height>
                </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
               </property>
               <property name="text">
                <string>全关</string>
@@ -420,12 +430,17 @@
              </spacer>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_5">
+             <widget class="QPushButton" name="CurtainBackpushButton">
               <property name="maximumSize">
                <size>
                 <width>100</width>
                 <height>16777215</height>
                </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
               </property>
               <property name="text">
                <string>返回</string>
@@ -759,7 +774,7 @@
              </spacer>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_6">
+             <widget class="QPushButton" name="AcBackpushButton">
               <property name="maximumSize">
                <size>
                 <width>100</width>
@@ -768,7 +783,7 @@
               </property>
               <property name="font">
                <font>
-                <pointsize>13</pointsize>
+                <pointsize>12</pointsize>
                </font>
               </property>
               <property name="text">
@@ -1082,7 +1097,7 @@
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_16">
             <item>
-             <widget class="QPushButton" name="AllturnOnButton">
+             <widget class="QPushButton" name="AllturnOnLightButton">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -1094,6 +1109,11 @@
                 <width>100</width>
                 <height>16777215</height>
                </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
               </property>
               <property name="text">
                <string>全开</string>
@@ -1114,12 +1134,17 @@
              </spacer>
             </item>
             <item>
-             <widget class="QPushButton" name="AllturnOffButton">
+             <widget class="QPushButton" name="AllturnOffLightButton">
               <property name="maximumSize">
                <size>
                 <width>100</width>
                 <height>16777215</height>
                </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
               </property>
               <property name="text">
                <string>全关</string>
@@ -1146,6 +1171,11 @@
                 <width>100</width>
                 <height>16777215</height>
                </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
               </property>
               <property name="text">
                <string>返回</string>
