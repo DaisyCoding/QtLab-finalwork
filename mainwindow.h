@@ -52,9 +52,6 @@ private slots:
     // 更新灯光状态到主页面
     void updateMainPageLightStatus();
 
-    //空调控制
-    void toggleAc(QPushButton*AcButton);
-
     // 网络更新槽函数
     void updateWeatherFromNetwork();
     void onWeatherReplyFinished();
@@ -66,6 +63,12 @@ private slots:
     void on_LivingroomAcButton_clicked();
 
     void on_BedroomAcButton_clicked();
+
+    void on_LivingroomCurtainButton_clicked();
+
+    void on_BedroomCurtainButton_clicked();
+
+    void on_AllCloseCurtainButton_clicked();
 
 private:
     void setupConnections();

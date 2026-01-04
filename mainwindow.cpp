@@ -97,6 +97,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->LivingroomTemperaturecomboBox->setEnabled(false);
     ui->BedroomAcModecomboBox->setEnabled(false);
     ui->BedroomTemperaturecomboBox->setEnabled(false);
+
+    //窗帘初始化
+    ui->LivingroomCurtainButton->setText("关");
+    ui->BedroomCurtainButton->setText("关");
 }
 
 MainWindow::~MainWindow()
@@ -161,14 +165,6 @@ void MainWindow::setupConnections()
     // 全开/全关按钮信号槽连接
     connect(ui->AllturnOnLightButton, &QPushButton::clicked, this, &MainWindow::on_AllturnOnLightButton_clicked);
     connect(ui->AllturnOffLightButton, &QPushButton::clicked, this, &MainWindow::on_AllturnOffLightButton_clicked);
-
-    //空调开关连接
-    // connect(ui->LivingroomAcButton,&QPushButton::clicked,[this](){
-    //     toggleAc(ui->LivingroomAcButton);
-    // });
-    // connect(ui->BedroomAcButton,&QPushButton::clicked,[this](){
-    //     toggleAc(ui->BedroomAcButton);
-    // });
 
 
     // 网络请求完成信号连接
@@ -435,7 +431,18 @@ void MainWindow::on_AcBackpushButton_clicked()
 
 void MainWindow::on_AllOpenCurtainButton_clicked()
 {
-
+    qDebug()<<ui->BedroomCurtainButton->text();
+    qDebug()<<ui->LivingroomCurtainButton->text();
+    if(ui->BedroomCurtainButton->text()=="关")
+    {
+        ui->BedroomCurtainButton->setText("开");
+        ui->BedroomCurtainButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+    }
+    if(ui->LivingroomCurtainButton->text()=="关")
+    {
+        ui->LivingroomCurtainButton->setText("开");
+        ui->LivingroomCurtainButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+    }
 }
 
 
@@ -559,4 +566,49 @@ void MainWindow::on_BedroomAcButton_clicked()
         qDebug() << "关空调:" << ui->BedroomAcButton->objectName() << "新状态:关" ;
     }
 }
+
+void MainWindow::on_LivingroomCurtainButton_clicked()
+{
+
+    QString status = ui->LivingroomCurtainButton->text();
+
+    if (status == "关") {
+        ui->LivingroomCurtainButton->setText("开");
+        ui->LivingroomCurtainButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+    } else if(status == "开"){
+        ui->LivingroomCurtainButton->setText("关");
+        ui->LivingroomCurtainButton->setStyleSheet("");
+    }
+}
+
+
+void MainWindow::on_BedroomCurtainButton_clicked()
+{
+    QString status = ui->BedroomCurtainButton->text();
+
+    if (status == "关") {
+        ui->BedroomCurtainButton->setText("开");
+        ui->BedroomCurtainButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+    } else if(status == "开"){
+        ui->BedroomCurtainButton->setText("关");
+        ui->BedroomCurtainButton->setStyleSheet("");
+    }
+}
+
+void MainWindow::on_AllCloseCurtainButton_clicked()
+{
+    qDebug()<<ui->BedroomCurtainButton->text();
+    qDebug()<<ui->LivingroomCurtainButton->text();
+    if(ui->BedroomCurtainButton->text()=="开")
+    {
+        ui->BedroomCurtainButton->setText("关");
+        ui->BedroomCurtainButton->setStyleSheet("");
+    }
+    if(ui->LivingroomCurtainButton->text()=="开")
+    {
+        ui->LivingroomCurtainButton->setText("关");
+        ui->LivingroomCurtainButton->setStyleSheet("");
+    }
+}
+
 

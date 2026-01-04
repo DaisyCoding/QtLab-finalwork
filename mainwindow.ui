@@ -124,7 +124,7 @@
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="MainPage">
          <layout class="QGridLayout" name="gridLayout">
@@ -307,7 +307,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_3">
+             <widget class="QPushButton" name="LivingroomCurtainButton">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -347,7 +347,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_4">
+             <widget class="QPushButton" name="BedroomCurtainButton">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
                 <horstretch>0</horstretch>
