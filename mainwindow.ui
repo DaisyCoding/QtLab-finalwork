@@ -24,7 +24,7 @@
        </font>
       </property>
       <property name="text">
-       <string>智能家居终端</string>
+       <string>智能家居控制中心</string>
       </property>
      </widget>
     </item>
@@ -124,7 +124,7 @@
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>3</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="MainPage">
          <layout class="QGridLayout" name="gridLayout">
@@ -545,6 +545,9 @@
                 <pointsize>12</pointsize>
                </font>
               </property>
+              <property name="currentText">
+               <string>27</string>
+              </property>
               <item>
                <property name="text">
                 <string>16</string>
@@ -690,6 +693,9 @@
                <font>
                 <pointsize>12</pointsize>
                </font>
+              </property>
+              <property name="currentText">
+               <string>27</string>
               </property>
               <item>
                <property name="text">

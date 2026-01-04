@@ -89,6 +89,14 @@ MainWindow::MainWindow(QWidget *parent)
     lightsOnCount = 0;
     updateMainPageLightStatus();
     qDebug() << "灯光系统初始化完成，开启灯数量:" << lightsOnCount;
+
+    //空调界面初始化
+    ui->LivingroomAcButton->setText("关");
+    ui->BedroomAcButton->setText("关");
+    ui->LivingroomAcModecomboBox->setEnabled(false);
+    ui->LivingroomTemperaturecomboBox->setEnabled(false);
+    ui->BedroomAcModecomboBox->setEnabled(false);
+    ui->BedroomTemperaturecomboBox->setEnabled(false);
 }
 
 MainWindow::~MainWindow()
@@ -153,6 +161,15 @@ void MainWindow::setupConnections()
     // 全开/全关按钮信号槽连接
     connect(ui->AllturnOnLightButton, &QPushButton::clicked, this, &MainWindow::on_AllturnOnLightButton_clicked);
     connect(ui->AllturnOffLightButton, &QPushButton::clicked, this, &MainWindow::on_AllturnOffLightButton_clicked);
+
+    //空调开关连接
+    // connect(ui->LivingroomAcButton,&QPushButton::clicked,[this](){
+    //     toggleAc(ui->LivingroomAcButton);
+    // });
+    // connect(ui->BedroomAcButton,&QPushButton::clicked,[this](){
+    //     toggleAc(ui->BedroomAcButton);
+    // });
+
 
     // 网络请求完成信号连接
     connect(networkManager, &QNetworkAccessManager::finished, this, &MainWindow::onNetworkReplyFinished);
@@ -300,9 +317,12 @@ bool MainWindow::parseWeatherData(const QJsonObject& jsonObj)
             // 获取温度
             if (nowObj.contains("temp")) {
                 QString temp = nowObj["temp"].toString();
+                qDebug()<<temp;
                 QString tempString = temp + "°C";
+                QString insideTemp = QString::number(temp.toInt()+3);//模拟室内温度比室外高3度
                 qDebug() << "更新温度:" << tempString;
                 statusTemperatureLabel.setText(tempString);
+                ui->Aclabel->setText("室内温度为:"+insideTemp+ "°C");
             }
             
             // 获取天气描述
@@ -489,5 +509,54 @@ void MainWindow::updateMainPageLightStatus()
     ui->Lightlabel->setText(lightStatusText);
     
     qDebug() << "更新主页面灯光状态:" << lightStatusText;
+}
+
+
+void MainWindow::on_LivingroomAcButton_clicked()
+{
+    // 获取当前空调状态
+    QString status = ui->LivingroomAcButton->text();
+    qDebug() << "切换空调前状态:" << status;
+
+
+    if (status == "关") {
+        // 开启空调（之前是关闭状态）
+        ui->LivingroomAcButton->setText("开");
+        ui->LivingroomAcButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+        ui->LivingroomAcModecomboBox->setEnabled(true);
+        ui->LivingroomTemperaturecomboBox->setEnabled(true);
+        qDebug() << "开空调:" << ui->LivingroomAcButton->objectName() << "新状态:开";
+    } else if(status == "开"){
+        // 关闭空调（之前是开启状态）
+        ui->LivingroomAcButton->setText("关");
+        ui->LivingroomAcButton->setStyleSheet("");
+        ui->LivingroomAcModecomboBox->setEnabled(false);
+        ui->LivingroomTemperaturecomboBox->setEnabled(false);
+        qDebug() << "关空调:" << ui->LivingroomAcButton->objectName() << "新状态:关" ;
+    }
+}
+
+
+void MainWindow::on_BedroomAcButton_clicked()
+{
+    // 获取当前空调状态
+    QString status = ui->BedroomAcButton->text();
+
+
+    if (status == "关") {
+        // 开启空调（之前是关闭状态）
+        ui->BedroomAcButton->setText("开");
+        ui->BedroomAcButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+        ui->BedroomAcModecomboBox->setEnabled(true);
+        ui->BedroomTemperaturecomboBox->setEnabled(true);
+        qDebug() << "开空调:" << ui->BedroomAcButton->objectName() << "新状态:开";
+    } else if(status == "开"){
+        // 关闭空调（之前是开启状态）
+        ui->BedroomAcButton->setText("关");
+        ui->BedroomAcButton->setStyleSheet("");
+        ui->BedroomAcModecomboBox->setEnabled(false);
+        ui->BedroomTemperaturecomboBox->setEnabled(false);
+        qDebug() << "关空调:" << ui->BedroomAcButton->objectName() << "新状态:关" ;
+    }
 }
 

@@ -47,11 +47,13 @@ private slots:
 
     void on_AllturnOnLightButton_clicked();
     void on_AllturnOffLightButton_clicked();
-
     void toggleLight(QPushButton* lightButton);
     
     // 更新灯光状态到主页面
     void updateMainPageLightStatus();
+
+    //空调控制
+    void toggleAc(QPushButton*AcButton);
 
     // 网络更新槽函数
     void updateWeatherFromNetwork();
@@ -60,6 +62,10 @@ private slots:
     
     // 网络请求完成槽函数
     void onNetworkReplyFinished(QNetworkReply *reply);
+
+    void on_LivingroomAcButton_clicked();
+
+    void on_BedroomAcButton_clicked();
 
 private:
     void setupConnections();
