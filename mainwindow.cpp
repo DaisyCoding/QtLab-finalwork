@@ -21,6 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
     , timeUpdateTimer(nullptr)
     , weatherUpdateTimer(nullptr)
     , lightsOnCount(0)
+    , curtainsOpenCount(0)
 {
     ui->setupUi(this);
 
@@ -101,6 +102,15 @@ MainWindow::MainWindow(QWidget *parent)
     //窗帘初始化
     ui->LivingroomCurtainButton->setText("关");
     ui->BedroomCurtainButton->setText("关");
+    
+    // 初始化窗帘状态，所有窗帘默认关闭
+    curtainStates[ui->LivingroomCurtainButton] = false;
+    curtainStates[ui->BedroomCurtainButton] = false;
+    
+    // 重置窗帘计数并更新主页面显示
+    curtainsOpenCount = 0;
+    updateMainPageCurtainStatus();
+    qDebug() << "窗帘系统初始化完成，开启窗帘数量:" << curtainsOpenCount;
 }
 
 MainWindow::~MainWindow()
@@ -166,6 +176,18 @@ void MainWindow::setupConnections()
     connect(ui->AllturnOnLightButton, &QPushButton::clicked, this, &MainWindow::on_AllturnOnLightButton_clicked);
     connect(ui->AllturnOffLightButton, &QPushButton::clicked, this, &MainWindow::on_AllturnOffLightButton_clicked);
 
+    // 窗帘按钮信号槽连接
+    connect(ui->LivingroomCurtainButton, &QPushButton::clicked, [this]() {
+        toggleCurtain(ui->LivingroomCurtainButton);
+    });
+    
+    connect(ui->BedroomCurtainButton, &QPushButton::clicked, [this]() {
+        toggleCurtain(ui->BedroomCurtainButton);
+    });
+    
+    // 全开/全关窗帘按钮信号槽连接
+    connect(ui->AllOpenCurtainButton, &QPushButton::clicked, this, &MainWindow::on_AllOpenCurtainButton_clicked);
+    connect(ui->AllCloseCurtainButton, &QPushButton::clicked, this, &MainWindow::on_AllCloseCurtainButton_clicked);
 
     // 网络请求完成信号连接
     connect(networkManager, &QNetworkAccessManager::finished, this, &MainWindow::onNetworkReplyFinished);
@@ -431,17 +453,15 @@ void MainWindow::on_AcBackpushButton_clicked()
 
 void MainWindow::on_AllOpenCurtainButton_clicked()
 {
-    qDebug()<<ui->BedroomCurtainButton->text();
-    qDebug()<<ui->LivingroomCurtainButton->text();
-    if(ui->BedroomCurtainButton->text()=="关")
-    {
-        ui->BedroomCurtainButton->setText("开");
-        ui->BedroomCurtainButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
-    }
-    if(ui->LivingroomCurtainButton->text()=="关")
-    {
-        ui->LivingroomCurtainButton->setText("开");
-        ui->LivingroomCurtainButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+    qDebug() << "执行全开窗帘操作";
+    
+    // 遍历所有窗帘状态
+    for (auto it = curtainStates.begin(); it != curtainStates.end(); ++it) {
+        // 如果窗帘当前是关闭的
+        if (!it.value()) {
+            // 调用 toggleCurtain 来打开它
+            toggleCurtain(it.key());
+        }
     }
 }
 
@@ -503,6 +523,39 @@ void MainWindow::toggleLight(QPushButton* lightButton)
     updateMainPageLightStatus();
 }
 
+void MainWindow::toggleCurtain(QPushButton* curtainButton)
+{
+    // 验证按钮有效性
+    if (!curtainButton) {
+        qDebug() << "错误：无效的窗帘按钮";
+        return;
+    }
+    
+    // 获取当前窗帘状态
+    bool isOpen = curtainStates[curtainButton];
+    qDebug() << "切换窗帘前状态:" << (isOpen ? "开" : "关");
+    
+    // 切换窗帘状态
+    curtainStates[curtainButton] = !isOpen;
+    
+    if (!isOpen) {
+        // 开启窗帘（之前是关闭状态）
+        curtainButton->setText("开");
+        curtainButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+        curtainsOpenCount++;
+        qDebug() << "开窗帘:" << curtainButton->objectName() << "新状态:开" << "窗帘数量:" << curtainsOpenCount;
+    } else {
+        // 关闭窗帘（之前是开启状态）
+        curtainButton->setText("关");
+        curtainButton->setStyleSheet("");
+        curtainsOpenCount--;
+        qDebug() << "关窗帘:" << curtainButton->objectName() << "新状态:关" << "窗帘数量:" << curtainsOpenCount;
+    }
+    
+    // 更新主页面窗帘数量
+    updateMainPageCurtainStatus();
+}
+
 void MainWindow::updateMainPageLightStatus()
 {
     // 确保lightsOnCount不会小于0
@@ -516,6 +569,21 @@ void MainWindow::updateMainPageLightStatus()
     ui->Lightlabel->setText(lightStatusText);
     
     qDebug() << "更新主页面灯光状态:" << lightStatusText;
+}
+
+void MainWindow::updateMainPageCurtainStatus()
+{
+    // 确保curtainsOpenCount不会小于0
+    if (curtainsOpenCount < 0) {
+        curtainsOpenCount = 0;
+        qDebug() << "修正负数窗帘计数:" << curtainsOpenCount;
+    }
+    
+    // 更新主页面窗帘状态标签
+    QString curtainStatusText = QString("已打开窗帘数：%1").arg(curtainsOpenCount);
+    ui->Curtainlabel->setText(curtainStatusText);
+    
+    qDebug() << "更新主页面窗帘状态:" << curtainStatusText;
 }
 
 
@@ -567,47 +635,19 @@ void MainWindow::on_BedroomAcButton_clicked()
     }
 }
 
-void MainWindow::on_LivingroomCurtainButton_clicked()
-{
 
-    QString status = ui->LivingroomCurtainButton->text();
-
-    if (status == "关") {
-        ui->LivingroomCurtainButton->setText("开");
-        ui->LivingroomCurtainButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
-    } else if(status == "开"){
-        ui->LivingroomCurtainButton->setText("关");
-        ui->LivingroomCurtainButton->setStyleSheet("");
-    }
-}
-
-
-void MainWindow::on_BedroomCurtainButton_clicked()
-{
-    QString status = ui->BedroomCurtainButton->text();
-
-    if (status == "关") {
-        ui->BedroomCurtainButton->setText("开");
-        ui->BedroomCurtainButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
-    } else if(status == "开"){
-        ui->BedroomCurtainButton->setText("关");
-        ui->BedroomCurtainButton->setStyleSheet("");
-    }
-}
 
 void MainWindow::on_AllCloseCurtainButton_clicked()
 {
-    qDebug()<<ui->BedroomCurtainButton->text();
-    qDebug()<<ui->LivingroomCurtainButton->text();
-    if(ui->BedroomCurtainButton->text()=="开")
-    {
-        ui->BedroomCurtainButton->setText("关");
-        ui->BedroomCurtainButton->setStyleSheet("");
-    }
-    if(ui->LivingroomCurtainButton->text()=="开")
-    {
-        ui->LivingroomCurtainButton->setText("关");
-        ui->LivingroomCurtainButton->setStyleSheet("");
+    qDebug() << "执行全关窗帘操作";
+    
+    // 遍历所有窗帘状态
+    for (auto it = curtainStates.begin(); it != curtainStates.end(); ++it) {
+        // 如果窗帘当前是开启的
+        if (it.value()) {
+            // 调用 toggleCurtain 来关闭它
+            toggleCurtain(it.key());
+        }
     }
 }
 

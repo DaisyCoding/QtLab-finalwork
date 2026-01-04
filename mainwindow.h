@@ -51,6 +51,12 @@ private slots:
     
     // 更新灯光状态到主页面
     void updateMainPageLightStatus();
+    
+    // 更新窗帘状态到主页面
+    void updateMainPageCurtainStatus();
+    
+    // 窗帘控制函数
+    void toggleCurtain(QPushButton* curtainButton);
 
     // 网络更新槽函数
     void updateWeatherFromNetwork();
@@ -63,10 +69,6 @@ private slots:
     void on_LivingroomAcButton_clicked();
 
     void on_BedroomAcButton_clicked();
-
-    void on_LivingroomCurtainButton_clicked();
-
-    void on_BedroomCurtainButton_clicked();
 
     void on_AllCloseCurtainButton_clicked();
 
@@ -91,5 +93,9 @@ private:
     // 灯光相关成员变量
     QMap<QPushButton*, bool> lightStates;
     int lightsOnCount;
+    
+    // 窗帘相关成员变量
+    QMap<QPushButton*, bool> curtainStates;
+    int curtainsOpenCount;
 };
 #endif // MAINWINDOW_H
