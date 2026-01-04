@@ -42,6 +42,16 @@ private slots:
     void on_CurtainBackpushButton_clicked();
     void on_AcBackpushButton_clicked();
     void on_AllOpenCurtainButton_clicked();
+    
+    // 灯光控制槽函数
+
+    void on_AllturnOnLightButton_clicked();
+    void on_AllturnOffLightButton_clicked();
+
+    void toggleLight(QPushButton* lightButton);
+    
+    // 更新灯光状态到主页面
+    void updateMainPageLightStatus();
 
     // 网络更新槽函数
     void updateWeatherFromNetwork();
@@ -68,5 +78,9 @@ private:
     QNetworkReply *weatherReply;
     QTimer *timeUpdateTimer;
     QTimer *weatherUpdateTimer;
+    
+    // 灯光相关成员变量
+    QMap<QPushButton*, bool> lightStates;
+    int lightsOnCount;
 };
 #endif // MAINWINDOW_H

@@ -20,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
     , weatherReply(nullptr)
     , timeUpdateTimer(nullptr)
     , weatherUpdateTimer(nullptr)
+    , lightsOnCount(0)
 {
     ui->setupUi(this);
 
@@ -53,6 +54,41 @@ MainWindow::MainWindow(QWidget *parent)
     startNetworkUpdate();
 
     setupConnections();
+    
+    // 初始化灯光状态，所有灯默认关闭
+    lightStates[ui->LivingroomLightButton] = false;
+    lightStates[ui->KitchenLightButton] = false;
+    lightStates[ui->BedroomLightButton] = false;
+    lightStates[ui->BathroomLightButton] = false;
+    lightStates[ui->StudyroomLightButton] = false;
+    lightStates[ui->BalconyLightButton] = false;
+    lightStates[ui->DiningroomLightButton] = false;
+    
+    // 确保所有灯光按钮初始状态一致
+    QList<QPushButton*> allLightButtons = {
+        ui->LivingroomLightButton,
+        ui->KitchenLightButton,
+        ui->BedroomLightButton,
+        ui->BathroomLightButton,
+        ui->StudyroomLightButton,
+        ui->BalconyLightButton,
+        ui->DiningroomLightButton
+    };
+    
+    for (QPushButton* button : allLightButtons) {
+        if (button) {
+            button->setText("关");
+            button->setStyleSheet("");
+            qDebug() << "初始化灯光按钮:" << button->objectName() << "状态:关";
+        } else {
+            qDebug() << "警告：发现空灯光按钮";
+        }
+    }
+    
+    // 重置灯光计数并更新主页面显示
+    lightsOnCount = 0;
+    updateMainPageLightStatus();
+    qDebug() << "灯光系统初始化完成，开启灯数量:" << lightsOnCount;
 }
 
 MainWindow::~MainWindow()
@@ -84,6 +120,39 @@ void MainWindow::setupConnections()
     connect(ui->LightBackpushButton, &QPushButton::clicked, this, &MainWindow::on_LightBackpushButton_clicked);
     connect(ui->CurtainBackpushButton, &QPushButton::clicked, this, &MainWindow::on_CurtainBackpushButton_clicked);
     connect(ui->AcBackpushButton, &QPushButton::clicked, this, &MainWindow::on_AcBackpushButton_clicked);
+
+    // 使用 lambda 表达式处理灯光按钮点击事件，避免重复调用
+    connect(ui->LivingroomLightButton, &QPushButton::clicked, [this]() {
+        toggleLight(ui->LivingroomLightButton);
+    });
+    
+    connect(ui->KitchenLightButton, &QPushButton::clicked, [this]() {
+        toggleLight(ui->KitchenLightButton);
+    });
+    
+    connect(ui->BedroomLightButton, &QPushButton::clicked, [this]() {
+        toggleLight(ui->BedroomLightButton);
+    });
+    
+    connect(ui->BathroomLightButton, &QPushButton::clicked, [this]() {
+        toggleLight(ui->BathroomLightButton);
+    });
+    
+    connect(ui->StudyroomLightButton, &QPushButton::clicked, [this]() {
+        toggleLight(ui->StudyroomLightButton);
+    });
+    
+    connect(ui->BalconyLightButton, &QPushButton::clicked, [this]() {
+        toggleLight(ui->BalconyLightButton);
+    });
+    
+    connect(ui->DiningroomLightButton, &QPushButton::clicked, [this]() {
+        toggleLight(ui->DiningroomLightButton);
+    });
+    
+    // 全开/全关按钮信号槽连接
+    connect(ui->AllturnOnLightButton, &QPushButton::clicked, this, &MainWindow::on_AllturnOnLightButton_clicked);
+    connect(ui->AllturnOffLightButton, &QPushButton::clicked, this, &MainWindow::on_AllturnOffLightButton_clicked);
 
     // 网络请求完成信号连接
     connect(networkManager, &QNetworkAccessManager::finished, this, &MainWindow::onNetworkReplyFinished);
@@ -252,7 +321,7 @@ bool MainWindow::parseWeatherData(const QJsonObject& jsonObj)
         qDebug() << "JSON中没有找到now字段";
     }
     
-    return false;
+    return true;
 }
 
 
@@ -347,5 +416,78 @@ void MainWindow::on_AcBackpushButton_clicked()
 void MainWindow::on_AllOpenCurtainButton_clicked()
 {
 
+}
+
+
+void MainWindow::on_AllturnOnLightButton_clicked()
+{
+    // 遍历所有灯光状态
+    for (auto it = lightStates.begin(); it != lightStates.end(); ++it) {
+        // 如果灯当前是关闭的
+        if (!it.value()) {
+            // 调用 toggleLight 来打开它
+            toggleLight(it.key());
+        }
+    }
+}
+
+void MainWindow::on_AllturnOffLightButton_clicked()
+{
+    // 遍历所有灯光状态
+       for (auto it = lightStates.begin(); it != lightStates.end(); ++it) {
+           // 如果灯当前是打开的
+           if (it.value()) {
+               // 调用 toggleLight 来关闭它
+               toggleLight(it.key());
+           }
+       }
+}
+
+void MainWindow::toggleLight(QPushButton* lightButton)
+{
+    // 验证按钮有效性
+    if (!lightButton) {
+        qDebug() << "错误：无效的灯光按钮";
+        return;
+    }
+    
+    // 获取当前灯光状态
+    bool isOn = lightStates[lightButton];
+    qDebug() << "切换灯光前状态:" << (isOn ? "开" : "关");
+    
+    // 切换灯光状态
+    lightStates[lightButton] = !isOn;
+    
+    if (!isOn) {
+        // 开启灯光（之前是关闭状态）
+        lightButton->setText("开");
+        lightButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+        lightsOnCount++;
+        qDebug() << "开灯:" << lightButton->objectName() << "新状态:开" << "灯光数量:" << lightsOnCount;
+    } else {
+        // 关闭灯光（之前是开启状态）
+        lightButton->setText("关");
+        lightButton->setStyleSheet("");
+        lightsOnCount--;
+        qDebug() << "关灯:" << lightButton->objectName() << "新状态:关" << "灯光数量:" << lightsOnCount;
+    }
+    
+    // 更新主页面灯光数量
+    updateMainPageLightStatus();
+}
+
+void MainWindow::updateMainPageLightStatus()
+{
+    // 确保lightsOnCount不会小于0
+    if (lightsOnCount < 0) {
+        lightsOnCount = 0;
+        qDebug() << "修正负数灯光计数:" << lightsOnCount;
+    }
+    
+    // 更新主页面灯光状态标签
+    QString lightStatusText = QString("已打开灯光数：%1").arg(lightsOnCount);
+    ui->Lightlabel->setText(lightStatusText);
+    
+    qDebug() << "更新主页面灯光状态:" << lightStatusText;
 }
 
