@@ -2,7 +2,17 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include<QLabel>
+#include <QLabel>
+#include <QPushButton>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QTimer>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QUrl>
+#include <QTime>
+#include <QString>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -13,7 +23,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 private slots:
@@ -29,20 +39,34 @@ private slots:
     
     // 返回按钮槽函数
     void on_LightBackpushButton_clicked();
-
     void on_CurtainBackpushButton_clicked();
-
     void on_AcBackpushButton_clicked();
-
     void on_AllOpenCurtainButton_clicked();
+
+    // 网络更新槽函数
+    void updateWeatherFromNetwork();
+    void onWeatherReplyFinished();
+    void onNetworkError(QNetworkReply::NetworkError error);
+    
+    // 网络请求完成槽函数
+    void onNetworkReplyFinished(QNetworkReply *reply);
 
 private:
     void setupConnections();
     void switchToMainPage();
+    void startNetworkUpdate();
+    void updateCurrentTime();
+    bool parseWeatherData(const QJsonObject& jsonObj);
 
     Ui::MainWindow *ui;
     QLabel statusTimeLabel;
     QLabel statusWeatherLabel;
     QLabel statusTemperatureLabel;
+    
+    // 网络相关成员变量
+    QNetworkAccessManager *networkManager;
+    QNetworkReply *weatherReply;
+    QTimer *timeUpdateTimer;
+    QTimer *weatherUpdateTimer;
 };
 #endif // MAINWINDOW_H
