@@ -57,6 +57,13 @@ private slots:
     
     // 窗帘控制函数
     void toggleCurtain(QPushButton* curtainButton);
+    
+    // 场景功能专用控制函数
+    void turnOnLight(QPushButton* lightButton);
+    void turnOffCurtain(QPushButton* curtainButton);
+    
+    // 场景功能相关函数
+    void turnOnAirConditionerWithSmartControl();
 
     // 网络更新槽函数
     void updateWeatherFromNetwork();
@@ -97,5 +104,8 @@ private:
     // 窗帘相关成员变量
     QMap<QPushButton*, bool> curtainStates;
     int curtainsOpenCount;
+    
+    // 场景功能相关成员变量
+    int outsideTemperature;  // 室外温度
 };
 #endif // MAINWINDOW_H

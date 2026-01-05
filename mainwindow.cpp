@@ -22,6 +22,7 @@ MainWindow::MainWindow(QWidget *parent)
     , weatherUpdateTimer(nullptr)
     , lightsOnCount(0)
     , curtainsOpenCount(0)
+    , outsideTemperature(25)  // 默认室外温度为25度
 {
     ui->setupUi(this);
 
@@ -336,9 +337,10 @@ bool MainWindow::parseWeatherData(const QJsonObject& jsonObj)
             if (nowObj.contains("temp")) {
                 QString temp = nowObj["temp"].toString();
                 qDebug()<<temp;
+                outsideTemperature = temp.toInt();  // 更新室外温度
                 QString tempString = temp + "°C";
                 QString insideTemp = QString::number(temp.toInt()+3);//模拟室内温度比室外高3度
-                qDebug() << "更新温度:" << tempString;
+                qDebug() << "更新温度:" << tempString << "室外温度已更新为:" << outsideTemperature << "°C";
                 statusTemperatureLabel.setText(tempString);
                 ui->Aclabel->setText("室内温度为:"+insideTemp+ "°C");
             }
@@ -401,14 +403,116 @@ void MainWindow::on_CurtainButton_clicked()
 
 void MainWindow::on_LockButton_clicked()
 {
-    qDebug() << "门锁功能暂未实现";
-    // TODO: 实现门锁控制页面
+    if(ui->Locklabel->text() == "未锁门")
+        ui->Locklabel->setText("已锁门");
 }
 
 void MainWindow::on_comingHomeModeButton_clicked()
 {
     qDebug() << "执行回家模式";
-    // TODO: 实现场景逻辑
+    qDebug() << "当前室外温度:" << outsideTemperature << "°C";
+    
+    // 1. 打开客厅灯和厨房灯（确保灯被打开，而不是切换）
+    qDebug() << "打开客厅灯和厨房灯";
+    turnOnLight(ui->LivingroomLightButton);
+    turnOnLight(ui->KitchenLightButton);
+    
+    // 2. 关闭两个窗帘
+    qDebug() << "关闭两个窗帘";
+    turnOffCurtain(ui->LivingroomCurtainButton);
+    turnOffCurtain(ui->BedroomCurtainButton);
+    
+    // 3. 根据室外温度智能控制空调
+    qDebug() << "检查是否需要打开空调";
+    turnOnAirConditionerWithSmartControl();
+}
+
+void MainWindow::turnOnLight(QPushButton* lightButton)
+{
+    // 验证按钮有效性
+    if (!lightButton) {
+        qDebug() << "错误：无效的灯光按钮";
+        return;
+    }
+    
+    // 获取当前灯光状态
+    bool isOn = lightStates[lightButton];
+    
+    if (!isOn) {
+        // 如果灯是关闭的，打开它
+        lightStates[lightButton] = true;
+        lightButton->setText("开");
+        lightButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+        lightsOnCount++;
+        qDebug() << "开灯:" << lightButton->objectName() << "新状态:开" << "灯光数量:" << lightsOnCount;
+        updateMainPageLightStatus();
+    } else {
+        qDebug() << "灯已经是打开状态:" << lightButton->objectName();
+    }
+}
+
+void MainWindow::turnOffCurtain(QPushButton* curtainButton)
+{
+    // 验证按钮有效性
+    if (!curtainButton) {
+        qDebug() << "错误：无效的窗帘按钮";
+        return;
+    }
+    
+    // 获取当前窗帘状态
+    bool isOpen = curtainStates[curtainButton];
+    
+    if (isOpen) {
+        // 如果窗帘是打开的，关闭它
+        curtainStates[curtainButton] = false;
+        curtainButton->setText("关");
+        curtainButton->setStyleSheet("");
+        curtainsOpenCount--;
+        qDebug() << "关窗帘:" << curtainButton->objectName() << "新状态:关" << "窗帘数量:" << curtainsOpenCount;
+        updateMainPageCurtainStatus();
+    } else {
+        qDebug() << "窗帘已经是关闭状态:" << curtainButton->objectName();
+    }
+}
+
+void MainWindow::turnOnAirConditionerWithSmartControl()
+{
+    // 根据室外温度判断是否需要开空调
+    // 15-26度之间不需要开空调
+    if (outsideTemperature > 15 && outsideTemperature < 26) {
+        qDebug() << "室外温度" << outsideTemperature << "°C 在15-26度之间，不开空调";
+        return;
+    }
+    
+    // 室外温度>=26度或<=15度，需要开空调
+    qDebug() << "室外温度:" << outsideTemperature << "°C，需要开启空调";
+    
+    // 获取当前空调状态
+    QString status = ui->LivingroomAcButton->text();
+    
+    if (status == "关") {
+        // 开启客厅空调
+        ui->LivingroomAcButton->setText("开");
+        ui->LivingroomAcButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+        ui->LivingroomAcModecomboBox->setEnabled(true);
+        ui->LivingroomTemperaturecomboBox->setEnabled(true);
+        qDebug() << "开空调:" << ui->LivingroomAcButton->objectName() << "新状态:开";
+    }
+    
+    // 根据室外温度智能设置空调模式和温度
+    if (outsideTemperature >= 26) {
+        // 室外温度>=26度，设置制冷模式，温度比室外低2度
+        int targetTemp = outsideTemperature - 2;
+        ui->LivingroomAcModecomboBox->setCurrentText("制冷");
+        ui->LivingroomTemperaturecomboBox->setCurrentText(QString::number(targetTemp));
+        qDebug() << "制冷模式，温度设置为:" << targetTemp << "°C";
+    } else if (outsideTemperature <= 15) {
+        // 室外温度<=15度，设置制热模式，温度比室外高3度
+        int targetTemp = outsideTemperature + 3;
+        ui->LivingroomAcModecomboBox->setCurrentText("制热");
+        ui->LivingroomTemperaturecomboBox->setCurrentText(QString::number(targetTemp));
+        qDebug() << "制热模式，温度设置为:" << targetTemp << "°C";
+    }
 }
 
 void MainWindow::on_leavingHomeModeButton_clicked()

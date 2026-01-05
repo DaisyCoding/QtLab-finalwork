@@ -124,7 +124,7 @@
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="MainPage">
          <layout class="QGridLayout" name="gridLayout">
@@ -281,7 +281,7 @@
              <item>
               <widget class="QLabel" name="Locklabel">
                <property name="text">
-                <string>已锁门</string>
+                <string>未锁门</string>
                </property>
               </widget>
              </item>
@@ -1224,7 +1224,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
