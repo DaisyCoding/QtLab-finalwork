@@ -13,6 +13,8 @@
 #include <QUrl>
 #include <QTime>
 #include <QString>
+#include <QDateTime>
+#include "timepickerdialog.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -35,7 +37,7 @@ private slots:
     void on_comingHomeModeButton_clicked();
     void on_leavingHomeModeButton_clicked();
     void on_SleepModeButton_clicked();
-    void on_GameModeButton_clicked();
+    void on_WakeUpModeButton_clicked();
     
     // 返回按钮槽函数
     void on_LightBackpushButton_clicked();
@@ -68,6 +70,8 @@ private slots:
     // 场景功能相关函数
     void turnOnAirConditionerWithSmartControl();
     void turnOnAirConditionerWithSmartControlForBedroom();
+    void executeWakeUpActions();
+    void cancelWakeUpAlarm();
 
     // 网络更新槽函数
     void updateWeatherFromNetwork();
@@ -82,6 +86,8 @@ private slots:
     void on_BedroomAcButton_clicked();
 
     void on_AllCloseCurtainButton_clicked();
+
+    // void on_WakeUpModeButton_clicked();
 
 private:
     void setupConnections();
@@ -111,5 +117,11 @@ private:
     
     // 场景功能相关成员变量
     int outsideTemperature;  // 室外温度
+    
+    // 起床模式相关成员变量
+    QTimer *wakeUpTimer;
+    QDateTime wakeUpTime;
+    QLabel *wakeUpStatusLabel;
+    bool isWakeUpModeActive;
 };
 #endif // MAINWINDOW_H

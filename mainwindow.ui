@@ -100,7 +100,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="GameModeButton">
+          <widget class="QPushButton" name="WakeUpModeButton">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
              <horstretch>0</horstretch>
@@ -114,7 +114,26 @@
             </font>
            </property>
            <property name="text">
-            <string>游戏</string>
+            <string>起床</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="DeleteWakeUpAlarmButton">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="font">
+            <font>
+             <family>Microsoft YaHei</family>
+             <pointsize>12</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>删除闹钟</string>
            </property>
           </widget>
          </item>
@@ -124,7 +143,7 @@
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>2</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="MainPage">
          <layout class="QGridLayout" name="gridLayout">

@@ -23,6 +23,9 @@ MainWindow::MainWindow(QWidget *parent)
     , lightsOnCount(0)
     , curtainsOpenCount(0)
     , outsideTemperature(25)  // 默认室外温度为25度
+    , wakeUpTimer(nullptr)
+    , wakeUpStatusLabel(nullptr)
+    , isWakeUpModeActive(false)
 {
     ui->setupUi(this);
 
@@ -137,7 +140,9 @@ void MainWindow::setupConnections()
     connect(ui->comingHomeModeButton, &QPushButton::clicked, this, &MainWindow::on_comingHomeModeButton_clicked);
     connect(ui->leavingHomeModeButton, &QPushButton::clicked, this, &MainWindow::on_leavingHomeModeButton_clicked);
     connect(ui->SleepModeButton, &QPushButton::clicked, this, &MainWindow::on_SleepModeButton_clicked);
-    connect(ui->GameModeButton, &QPushButton::clicked, this, &MainWindow::on_GameModeButton_clicked);
+
+    // 删除闹钟按钮连接
+    connect(ui->DeleteWakeUpAlarmButton, &QPushButton::clicked, this, &MainWindow::cancelWakeUpAlarm);
 
     // 返回按钮信号槽连接
     connect(ui->LightBackpushButton, &QPushButton::clicked, this, &MainWindow::on_LightBackpushButton_clicked);
@@ -685,10 +690,128 @@ void MainWindow::turnOnAirConditionerWithSmartControlForBedroom()
     }
 }
 
-void MainWindow::on_GameModeButton_clicked()
+void MainWindow::on_WakeUpModeButton_clicked()
 {
-    qDebug() << "执行游戏模式";
-    // TODO: 实现场景逻辑
+    qDebug() << "执行起床模式";
+    
+    TimePickerDialog dialog(this);
+    dialog.setSelectedTime(QTime::currentTime().addSecs(1));  // 默认1分钟后
+    
+    if (dialog.exec() == QDialog::Accepted) {
+        QTime selectedTime = dialog.selectedTime();
+        wakeUpTime = QDateTime::currentDateTime();
+        wakeUpTime.setTime(selectedTime);
+        
+        // 如果选择的时间已经过了今天的当前时间，设置到明天
+        if (wakeUpTime <= QDateTime::currentDateTime()) {
+            wakeUpTime = wakeUpTime.addDays(1);
+        }
+        
+        qDebug() << "设置的起床时间:" << wakeUpTime.toString("yyyy-MM-dd hh:mm:ss");
+        
+        // 停止并删除之前的定时器
+        if (wakeUpTimer) {
+            wakeUpTimer->stop();
+            delete wakeUpTimer;
+            wakeUpTimer = nullptr;
+        }
+        
+        // 计算到目标时间的间隔（毫秒）
+        qint64 intervalMs = QDateTime::currentDateTime().msecsTo(wakeUpTime);
+        qDebug() << "间隔时间（毫秒）:" << intervalMs;
+        
+        if (intervalMs > 0) {
+            // 使用 QTimer::singleShot 更可靠
+            wakeUpTimer = new QTimer(this);
+            connect(wakeUpTimer, &QTimer::timeout, this, [this]() {
+                executeWakeUpActions();
+            });
+            wakeUpTimer->start(intervalMs);
+            
+            isWakeUpModeActive = true;
+            qDebug() << "起床模式已启动，距离目标时间还有" << (intervalMs / 1000) << "秒";
+            
+            // 在状态栏显示提示
+            if (wakeUpStatusLabel) {
+                delete wakeUpStatusLabel;
+            }
+            wakeUpStatusLabel = new QLabel(this);
+            wakeUpStatusLabel->setText(QString("起床闹钟: %1").arg(selectedTime.toString("hh:mm")));
+            ui->statusbar->addWidget(wakeUpStatusLabel, 0);
+        } else {
+            qDebug() << "错误：选择的时间已过";
+        }
+    }
+}
+
+void MainWindow::cancelWakeUpAlarm()
+{
+    qDebug() << "删除闹钟";
+    
+    if (wakeUpTimer) {
+        wakeUpTimer->stop();
+        delete wakeUpTimer;
+        wakeUpTimer = nullptr;
+        qDebug() << "定时器已停止并删除";
+    }
+    
+    if (wakeUpStatusLabel) {
+        ui->statusbar->removeWidget(wakeUpStatusLabel);
+        delete wakeUpStatusLabel;
+        wakeUpStatusLabel = nullptr;
+        qDebug() << "状态栏标签已删除";
+    }
+    
+    isWakeUpModeActive = false;
+    qDebug() << "闹钟已删除";
+}
+
+void MainWindow::executeWakeUpActions()
+{
+    qDebug() << "执行起床操作";
+    
+    // 停止并删除定时器
+    if (wakeUpTimer) {
+        wakeUpTimer->stop();
+        delete wakeUpTimer;
+        wakeUpTimer = nullptr;
+    }
+    
+    // 移除状态栏提示
+    if (wakeUpStatusLabel) {
+        ui->statusbar->removeWidget(wakeUpStatusLabel);
+        delete wakeUpStatusLabel;
+        wakeUpStatusLabel = nullptr;
+    }
+    
+    isWakeUpModeActive = false;
+    
+    // 1. 打开卧室窗帘
+    qDebug() << "打开卧室窗帘";
+    turnOnCurtain(ui->BedroomCurtainButton);
+    
+    // 2. 关闭卧室空调
+    qDebug() << "关闭卧室空调";
+    if (ui->BedroomAcButton->text() == "开") {
+        ui->BedroomAcButton->setText("关");
+        ui->BedroomAcButton->setStyleSheet("");
+        ui->BedroomAcModecomboBox->setEnabled(false);
+        ui->BedroomTemperaturecomboBox->setEnabled(false);
+        qDebug() << "关卧室空调:" << ui->BedroomAcButton->objectName();
+    }
+    
+    // 3. 如果时间早于7点，打开卧室灯
+    QTime currentTime = QTime::currentTime();
+    qDebug() << "当前时间:" << currentTime.toString("hh:mm");
+    
+    if (currentTime.hour() < 7) {
+        qDebug() << "当前时间早于7点，打开卧室灯";
+        turnOnLight(ui->BedroomLightButton);
+    } else {
+        qDebug() << "当前时间晚于7点或等于7点，不开灯";
+    }
+    
+    qDebug() << "起床操作执行完成";
 }
 
 void MainWindow::on_LightBackpushButton_clicked()
@@ -912,5 +1035,6 @@ void MainWindow::on_AllCloseCurtainButton_clicked()
         }
     }
 }
+
 
 
