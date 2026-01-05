@@ -518,7 +518,88 @@ void MainWindow::turnOnAirConditionerWithSmartControl()
 void MainWindow::on_leavingHomeModeButton_clicked()
 {
     qDebug() << "执行离家模式";
-    // TODO: 实现场景逻辑
+    
+    // 1. 打开所有窗帘
+    qDebug() << "打开所有窗帘";
+    turnOnCurtain(ui->LivingroomCurtainButton);
+    turnOnCurtain(ui->BedroomCurtainButton);
+    
+    // 2. 关闭所有灯光
+    qDebug() << "关闭所有灯光";
+    turnOffLight(ui->LivingroomLightButton);
+    turnOffLight(ui->KitchenLightButton);
+    turnOffLight(ui->BedroomLightButton);
+    turnOffLight(ui->BathroomLightButton);
+    turnOffLight(ui->StudyroomLightButton);
+    turnOffLight(ui->BalconyLightButton);
+    turnOffLight(ui->DiningroomLightButton);
+    
+    // 3. 关闭所有空调
+    qDebug() << "关闭所有空调";
+    turnOffAirConditioner();
+}
+
+void MainWindow::turnOffLight(QPushButton* lightButton)
+{
+    if (!lightButton) {
+        qDebug() << "错误：无效的灯光按钮";
+        return;
+    }
+    
+    bool isOn = lightStates[lightButton];
+    
+    if (isOn) {
+        lightStates[lightButton] = false;
+        lightButton->setText("关");
+        lightButton->setStyleSheet("");
+        lightsOnCount--;
+        qDebug() << "关灯:" << lightButton->objectName() << "新状态:关" << "灯光数量:" << lightsOnCount;
+        updateMainPageLightStatus();
+    } else {
+        qDebug() << "灯已经是关闭状态:" << lightButton->objectName();
+    }
+}
+
+void MainWindow::turnOnCurtain(QPushButton* curtainButton)
+{
+    if (!curtainButton) {
+        qDebug() << "错误：无效的窗帘按钮";
+        return;
+    }
+    
+    bool isOpen = curtainStates[curtainButton];
+    
+    if (!isOpen) {
+        curtainStates[curtainButton] = true;
+        curtainButton->setText("开");
+        curtainButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+        curtainsOpenCount++;
+        qDebug() << "开窗帘:" << curtainButton->objectName() << "新状态:开" << "窗帘数量:" << curtainsOpenCount;
+        updateMainPageCurtainStatus();
+    } else {
+        qDebug() << "窗帘已经是打开状态:" << curtainButton->objectName();
+    }
+}
+
+void MainWindow::turnOffAirConditioner()
+{
+    // 关闭客厅空调
+    if (ui->LivingroomAcButton->text() == "开") {
+        ui->LivingroomAcButton->setText("关");
+        ui->LivingroomAcButton->setStyleSheet("");
+        ui->LivingroomAcModecomboBox->setEnabled(false);
+        ui->LivingroomTemperaturecomboBox->setEnabled(false);
+        qDebug() << "关空调:" << ui->LivingroomAcButton->objectName();
+    }
+    
+    // 关闭卧室空调
+    if (ui->BedroomAcButton->text() == "开") {
+        ui->BedroomAcButton->setText("关");
+        ui->BedroomAcButton->setStyleSheet("");
+        ui->BedroomAcModecomboBox->setEnabled(false);
+        ui->BedroomTemperaturecomboBox->setEnabled(false);
+        qDebug() << "关空调:" << ui->BedroomAcButton->objectName();
+    }
 }
 
 void MainWindow::on_SleepModeButton_clicked()

@@ -60,7 +60,10 @@ private slots:
     
     // 场景功能专用控制函数
     void turnOnLight(QPushButton* lightButton);
+    void turnOffLight(QPushButton* lightButton);
     void turnOffCurtain(QPushButton* curtainButton);
+    void turnOnCurtain(QPushButton* curtainButton);
+    void turnOffAirConditioner();
     
     // 场景功能相关函数
     void turnOnAirConditionerWithSmartControl();
