@@ -605,7 +605,84 @@ void MainWindow::turnOffAirConditioner()
 void MainWindow::on_SleepModeButton_clicked()
 {
     qDebug() << "执行睡眠模式";
-    // TODO: 实现场景逻辑
+    qDebug() << "当前室外温度:" << outsideTemperature << "°C";
+    
+    // 1. 打开卧室灯
+    qDebug() << "打开卧室灯";
+    turnOnLight(ui->BedroomLightButton);
+    
+    // 2. 关闭其他所有灯光
+    qDebug() << "关闭其他灯光";
+    turnOffLight(ui->LivingroomLightButton);
+    turnOffLight(ui->KitchenLightButton);
+    turnOffLight(ui->BathroomLightButton);
+    turnOffLight(ui->StudyroomLightButton);
+    turnOffLight(ui->BalconyLightButton);
+    turnOffLight(ui->DiningroomLightButton);
+    
+    // 3. 关闭卧室窗帘
+    qDebug() << "关闭卧室窗帘";
+    turnOffCurtain(ui->BedroomCurtainButton);
+    
+    // 4. 关闭客厅空调
+    qDebug() << "关闭客厅空调";
+    if (ui->LivingroomAcButton->text() == "开") {
+        ui->LivingroomAcButton->setText("关");
+        ui->LivingroomAcButton->setStyleSheet("");
+        ui->LivingroomAcModecomboBox->setEnabled(false);
+        ui->LivingroomTemperaturecomboBox->setEnabled(false);
+        qDebug() << "关空调:" << ui->LivingroomAcButton->objectName();
+    }
+    
+    // 5. 根据室外温度智能控制卧室空调
+    qDebug() << "检查是否需要打开卧室空调";
+    turnOnAirConditionerWithSmartControlForBedroom();
+    
+    // 6. 点击门锁按钮
+    qDebug() << "点击门锁按钮";
+    on_LockButton_clicked();
+}
+
+void MainWindow::turnOnAirConditionerWithSmartControlForBedroom()
+{
+    // 根据室外温度判断是否需要开空调
+    // 15-26度之间不需要开空调
+    if (outsideTemperature > 15 && outsideTemperature < 26) {
+        qDebug() << "室外温度" << outsideTemperature << "°C 在15-26度之间，不开卧室空调";
+        return;
+    }
+    
+    // 室外温度>=26度或<=15度，需要开空调
+    qDebug() << "室外温度:" << outsideTemperature << "°C，需要开启卧室空调";
+    
+    // 获取当前空调状态
+    QString status = ui->BedroomAcButton->text();
+    
+    if (status == "关") {
+        // 开启卧室空调
+        ui->BedroomAcButton->setText("开");
+        ui->BedroomAcButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+        ui->BedroomAcModecomboBox->setEnabled(true);
+        ui->BedroomTemperaturecomboBox->setEnabled(true);
+        qDebug() << "开卧室空调:" << ui->BedroomAcButton->objectName() << "新状态:开";
+    }
+    
+    // 设置为睡眠模式
+    ui->BedroomAcModecomboBox->setCurrentText("睡眠");
+    qDebug() << "空调模式设置为:睡眠";
+    
+    // 根据室外温度智能设置空调温度
+    if (outsideTemperature >= 26) {
+        // 室外温度>=26度，设置制冷模式，温度比室外低2度
+        int targetTemp = outsideTemperature - 2;
+        ui->BedroomTemperaturecomboBox->setCurrentText(QString::number(targetTemp));
+        qDebug() << "制冷模式，温度设置为:" << targetTemp << "°C";
+    } else if (outsideTemperature <= 15) {
+        // 室外温度<=15度，设置制热模式，温度比室外高3度
+        int targetTemp = outsideTemperature + 3;
+        ui->BedroomTemperaturecomboBox->setCurrentText(QString::number(targetTemp));
+        qDebug() << "制热模式，温度设置为:" << targetTemp << "°C";
+    }
 }
 
 void MainWindow::on_GameModeButton_clicked()

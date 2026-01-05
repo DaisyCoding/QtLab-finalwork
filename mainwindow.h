@@ -67,6 +67,7 @@ private slots:
     
     // 场景功能相关函数
     void turnOnAirConditionerWithSmartControl();
+    void turnOnAirConditionerWithSmartControlForBedroom();
 
     // 网络更新槽函数
     void updateWeatherFromNetwork();
