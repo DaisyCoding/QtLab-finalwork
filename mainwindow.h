@@ -91,8 +91,6 @@ private slots:
 
     void on_AllCloseCurtainButton_clicked();
 
-    // void on_WakeUpModeButton_clicked();
-
 private:
     void setupConnections();
     void switchToMainPage();
