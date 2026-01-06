@@ -12,6 +12,10 @@
 #include <QByteArray>
 #include <QTimer>
 #include <QString>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include<QSqlError>
+#include<QDateTime>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -115,6 +119,13 @@ MainWindow::MainWindow(QWidget *parent)
     curtainsOpenCount = 0;
     updateMainPageCurtainStatus();
     qDebug() << "窗帘系统初始化完成，开启窗帘数量:" << curtainsOpenCount;
+
+    if (initDatabase()) {
+        populateDefaultDevices();  // 插入默认设备
+        populateDefaultScenes();
+    } else {
+        qCritical() << "数据库初始化失败，日志功能将无法使用！";
+    }
 }
 
 MainWindow::~MainWindow()
@@ -140,7 +151,7 @@ void MainWindow::setupConnections()
     connect(ui->comingHomeModeButton, &QPushButton::clicked, this, &MainWindow::on_comingHomeModeButton_clicked);
     connect(ui->leavingHomeModeButton, &QPushButton::clicked, this, &MainWindow::on_leavingHomeModeButton_clicked);
     connect(ui->SleepModeButton, &QPushButton::clicked, this, &MainWindow::on_SleepModeButton_clicked);
-
+    connect(ui->WakeUpModeButton,&QPushButton::clicked, this, &MainWindow::on_WakeUpModeButton_clicked);
     // 删除闹钟按钮连接
     connect(ui->DeleteWakeUpAlarmButton, &QPushButton::clicked, this, &MainWindow::cancelWakeUpAlarm);
 
@@ -369,6 +380,369 @@ bool MainWindow::parseWeatherData(const QJsonObject& jsonObj)
     return true;
 }
 
+bool MainWindow::initDatabase()
+{
+    // 检查是否已经存在默认连接
+    if (db.isOpen()) {
+        qDebug() << "数据库已经打开";
+        return true;
+    }
+    
+    // 如果已经存在名为"qt_sql_default_connection"的连接，直接使用它
+    if (QSqlDatabase::contains("qt_sql_default_connection")) {
+        db = QSqlDatabase::database("qt_sql_default_connection");
+    } else {
+        // 创建新的数据库连接
+        db = QSqlDatabase::addDatabase("QSQLITE");
+        db.setDatabaseName("C:/Users/Daisy/Desktop/QtCode/QtLab-FinalProject/finalprojectDB.db");
+    }
+
+    if (!db.isOpen()) {
+        if (!db.open()) {
+            qDebug() << "数据库打开失败:" << db.lastError().text();
+            return false;
+        }
+    }
+    qDebug() << "数据库打开成功";
+    return true;
+}
+/**
+ * @brief 记录设备操作到数据库的 device_history 表
+ * @param deviceId 设备的唯一ID (例如: "light_livingroom")
+ * @param actionType 操作类型 (例如: "toggle", "turn_on", "turn_off", "set_temperature")
+ * @param actionValue 操作的值 (例如: "on", "off", "24")
+ */
+void MainWindow::writeDeviceHistory(const QString &deviceId, const QString &actionType, const QString &actionValue)
+{
+    if (!db.isOpen()) {
+        qWarning() << "数据库未打开，无法记录设备历史。";
+        return;
+    }
+
+    QSqlQuery query;
+    // 使用 ? 占位符防止SQL注入
+    QString insertSql = R"(
+        INSERT INTO device_history (device_id, action_type, action_value, timestamp)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    )";
+    query.prepare(insertSql);
+
+    query.addBindValue(deviceId);
+    query.addBindValue(actionType);
+    query.addBindValue(actionValue);
+
+    if (!query.exec()) {
+        // 记录失败时打印详细错误，方便调试
+        qCritical() << "记录设备历史失败 for device" << deviceId
+                    << "Action:" << actionType
+                    << "Error:" << query.lastError().text();
+    } else {
+        qDebug() << "成功记录设备历史:" << deviceId << "-" << actionType << ":" << actionValue;
+    }
+}
+
+void MainWindow::updateDeviceStatus(const QString &deviceId, const QString &name, const QString &type, const QString &status)
+{
+    if (!db.isOpen()) {
+        qWarning() << "数据库未打开，无法更新设备状态。";
+        return;
+    }
+    QSqlQuery query;
+
+       // 构建需要更新的字段列表（只处理非空值）
+       QStringList updateFields;
+       if (!name.isEmpty()) {
+           updateFields << "name = ?";
+       }
+       if (!type.isEmpty()) {
+           updateFields << "type = ?";
+       }
+       if (!status.isEmpty()) {
+           updateFields << "status = ?";
+       }
+
+       // 无更新字段则直接返回
+       if (updateFields.isEmpty()) {
+           qDebug() << "无需要更新的设备字段，跳过更新";
+           return;
+       }
+
+       // 拼接更新SQL
+       QString updateSql = QString("UPDATE devices SET %1 WHERE device_id = ?").arg(updateFields.join(", "));
+       query.prepare(updateSql);
+
+       // 按顺序绑定更新字段的值
+       int bindIndex = 0;
+       if (!name.isEmpty()) {
+           query.addBindValue(name);
+           bindIndex++;
+       }
+       if (!type.isEmpty()) {
+           query.addBindValue(type);
+           bindIndex++;
+       }
+       if (!status.isEmpty()) {
+           query.addBindValue(status);
+           bindIndex++;
+       }
+
+       // 绑定设备ID（WHERE条件）
+       query.addBindValue(deviceId);
+
+       // 执行更新并处理结果
+       if (!query.exec()) {
+           qCritical() << "更新设备状态失败 for device" << deviceId
+                       << "Error:" << query.lastError().text();
+       } else {
+           if (query.numRowsAffected() > 0) {
+               qDebug() << "成功更新设备状态:" << deviceId << "→ 状态：" << status;
+           } else {
+               qDebug() << "设备状态未变化（或设备不存在）:" << deviceId;
+           }
+       }
+}
+
+void MainWindow::populateDefaultDevices()
+{
+    if (!db.isOpen()) {
+        qCritical() << "数据库未打开，无法插入默认设备。";
+        return;
+    }
+
+    QString currentTime = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+    const QList<QVariantMap> defaultDevices = {
+        // 灯光设备
+        {
+            {"device_id", "LivingroomLight"},
+            {"name", "客厅灯"},
+            {"type", "light"},
+            {"status", "off"},
+            {"created_at", currentTime}
+        },
+        {
+            {"device_id", "KitchenLight"},
+            {"name", "厨房灯"},
+            {"type", "light"},
+            {"status", "off"},
+            {"created_at", currentTime}
+        },
+        {
+            {"device_id", "BedroomLight"},
+            {"name", "卧室灯"},
+            {"type", "light"},
+            {"status", "off"},
+            {"created_at", currentTime}
+        },
+        {
+            {"device_id", "BathroomLight"},
+            {"name", "浴室灯"},
+            {"type", "light"},
+            {"status", "off"},
+            {"created_at", currentTime}
+        },
+        {
+            {"device_id", "StudyroomLight"},
+            {"name", "书房灯"},
+            {"type", "light"},
+            {"status", "off"},
+            {"created_at", currentTime}
+        },
+        {
+            {"device_id", "BalconyLight"},
+            {"name", "阳台灯"},
+            {"type", "light"},
+            {"status", "off"},
+            {"created_at", currentTime}
+        },
+        {
+            {"device_id", "DiningroomLight"},
+            {"name", "餐厅灯"},
+            {"type", "light"},
+            {"status", "off"},
+            {"created_at", currentTime}
+        },
+
+        // 空调设备
+        {
+            {"device_id", "LivingroomAc"},
+            {"name", "客厅空调"},
+            {"type", "air_conditioner"},
+            {"status", "off"},
+            {"created_at", currentTime}
+        },
+        {
+            {"device_id", "BedroomAc"},
+            {"name", "卧室空调"},
+            {"type", "air_conditioner"},
+            {"status", "off"},
+            {"created_at", currentTime}
+        },
+
+        // 窗帘设备
+        {
+            {"device_id", "LivingroomCurtain"},
+            {"name", "客厅窗帘"},
+            {"type", "curtain"},
+            {"status", "off"},
+            {"created_at", currentTime}
+        },
+        {
+            {"device_id", "BedroomCurtain"},
+            {"name", "卧室窗帘"},
+            {"type", "curtain"},
+            {"status", "off"},
+            {"created_at", currentTime}
+        },
+
+        // 锁设备
+        {
+            {"device_id", "Lock"},
+            {"name", "门锁"},
+            {"type", "lock"},
+            {"status", "unlocked"},
+            {"created_at", currentTime}
+        }
+    };
+
+    // 事务包裹批量插入
+    db.transaction();
+    QSqlQuery query;
+    QString insertSql = R"(
+        INSERT OR IGNORE INTO devices (device_id, name, type, status, created_at)
+        VALUES (?, ?, ?, ?, ?)
+    )";
+
+    int insertedCount = 0;
+    for (const auto& device : defaultDevices) {
+        // 1. 每次循环都重置查询对象，清空之前的绑定参数
+        query.clear();
+        // 2. 重新准备SQL语句（每次循环都要做）
+        if (!query.prepare(insertSql)) {
+            qWarning() << "准备SQL失败:" << query.lastError().text();
+            continue;
+        }
+
+        // 绑定参数（显式转QString，避免空值问题）
+        query.addBindValue(device["device_id"].toString());
+        query.addBindValue(device["name"].toString());
+        query.addBindValue(device["type"].toString());
+        query.addBindValue(device["status"].toString());
+        query.addBindValue(device["created_at"].toString());
+
+        // 执行插入
+        if (query.exec()) {
+            if (query.numRowsAffected() > 0) {
+                insertedCount++;
+                qDebug() << "成功插入设备:" << device["device_id"].toString();
+            } else {
+                qDebug() << "设备已存在，跳过插入:" << device["device_id"].toString();
+            }
+        } else {
+            qWarning() << "插入设备失败:" << device["device_id"].toString()
+                       << "原因:" << query.lastError().text();
+        }
+    }
+
+    // 提交事务
+    if (db.commit()) {
+        qDebug() << "默认设备检查完成。本次新插入" << insertedCount << "个设备。";
+    } else {
+        qCritical() << "提交设备插入事务失败:" << db.lastError().text();
+        db.rollback(); // 事务失败时回滚
+    }
+}
+
+void MainWindow::populateDefaultScenes()
+{
+    if (!db.isOpen()) {
+        qCritical() << "数据库未打开，无法插入默认场景。";
+        return;
+    }
+    QString currentTime = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+    // 默认场景列表（scene_id + 场景名称）
+    const QList<QVariantMap> defaultScenes = {
+        {{"scene_id", "comingHomeMode"}, {"name", "回家模式"}, {"created_at", currentTime}},
+        {{"scene_id", "leavingHomeMode"}, {"name", "离家模式"}, {"created_at", currentTime}},
+        {{"scene_id", "SleepMode"}, {"name", "睡眠模式"}, {"created_at", currentTime}},
+        {{"scene_id", "WakeUpMode"}, {"name", "起床模式"}, {"created_at", currentTime}}
+    };
+    db.transaction();
+        QSqlQuery query;
+        QString insertSql = R"(
+            INSERT OR IGNORE INTO scenes (scene_id, name, created_at)
+            VALUES (?, ?, ?)
+        )";
+
+        int insertedCount = 0;
+        for (const auto& scene : defaultScenes) {
+            query.clear();
+            if (!query.prepare(insertSql)) {
+                qWarning() << "准备场景SQL失败:" << query.lastError().text();
+                continue;
+            }
+
+            query.addBindValue(scene["scene_id"].toString());
+            query.addBindValue(scene["name"].toString());
+            query.addBindValue(scene["created_at"].toString());
+
+            if (query.exec()) {
+                if (query.numRowsAffected() > 0) {
+                    insertedCount++;
+                    qDebug() << "成功插入场景:" << scene["scene_id"].toString();
+                } else {
+                    qDebug() << "场景已存在，跳过插入:" << scene["scene_id"].toString();
+                }
+            } else {
+                qWarning() << "插入场景失败:" << scene["scene_id"].toString()
+                           << "原因:" << query.lastError().text();
+            }
+        }
+
+        if (db.commit()) {
+            qDebug() << "默认场景检查完成。本次新插入" << insertedCount << "个场景。";
+        } else {
+            qCritical() << "提交场景插入事务失败:" << db.lastError().text();
+            db.rollback();
+        }
+}
+
+void MainWindow::writeSceneHistory(const QString &sceneId)
+{
+    if (!db.isOpen()) {
+        qWarning() << "数据库未打开，无法记录场景历史。";
+        return;
+    }
+
+    // 关键1：每次都新建QSqlQuery对象，绝对避免参数累积
+    QSqlQuery query(db); // 显式关联数据库连接，更稳定
+    QString insertSql = "INSERT INTO scene_history (scene_id,timestamp) VALUES (?,?)";
+
+    // 关键2：先clear，再prepare，确保无残留
+    query.clear();
+    if (!query.prepare(insertSql)) {
+        qCritical() << "准备场景日志SQL失败:" << query.lastError().text();
+        return;
+    }
+
+    // 关键3：显式转QString，排除空值/类型问题
+    QString sceneIdClean = sceneId.trimmed(); // 去除首尾空格
+    if (sceneIdClean.isEmpty()) {
+        qCritical() << "场景ID为空，无法记录日志";
+        return;
+    }
+    query.addBindValue(sceneIdClean);
+    QString currentTime = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+    query.addBindValue(currentTime);
+
+    // 执行并反馈
+    if (!query.exec()) {
+        qCritical() << "记录场景历史失败 for scene" << sceneId
+                    << "Error:" << query.lastError().text();
+    } else {
+        qDebug() << "成功记录场景历史:" << sceneId;
+    }
+}
+
 
 
 void MainWindow::onNetworkError(QNetworkReply::NetworkError error)
@@ -409,7 +783,11 @@ void MainWindow::on_CurtainButton_clicked()
 void MainWindow::on_LockButton_clicked()
 {
     if(ui->Locklabel->text() == "未锁门")
+    {
         ui->Locklabel->setText("已锁门");
+        writeDeviceHistory("Lock","lock","locked");
+        updateDeviceStatus("Lock","","","locked");
+    }
 }
 
 void MainWindow::on_comingHomeModeButton_clicked()
@@ -430,6 +808,7 @@ void MainWindow::on_comingHomeModeButton_clicked()
     // 3. 根据室外温度智能控制空调
     qDebug() << "检查是否需要打开空调";
     turnOnAirConditionerWithSmartControl();
+    writeSceneHistory("comingHomeMode");
 }
 
 void MainWindow::turnOnLight(QPushButton* lightButton)
@@ -454,6 +833,12 @@ void MainWindow::turnOnLight(QPushButton* lightButton)
     } else {
         qDebug() << "灯已经是打开状态:" << lightButton->objectName();
     }
+
+    //记录灯光日志
+    QString deviceId = lightButton->objectName().replace("button","");
+    //通常在场景模式中使用，使用turn_on与单独操作中的toggle区分
+    writeDeviceHistory(deviceId,"turn_on","on");
+
 }
 
 void MainWindow::turnOffCurtain(QPushButton* curtainButton)
@@ -542,6 +927,7 @@ void MainWindow::on_leavingHomeModeButton_clicked()
     // 3. 关闭所有空调
     qDebug() << "关闭所有空调";
     turnOffAirConditioner();
+    writeSceneHistory("leavingHomeMode");
 }
 
 void MainWindow::turnOffLight(QPushButton* lightButton)
@@ -563,6 +949,11 @@ void MainWindow::turnOffLight(QPushButton* lightButton)
     } else {
         qDebug() << "灯已经是关闭状态:" << lightButton->objectName();
     }
+    //记录灯光日志
+    QString deviceId = lightButton->objectName().replace("button","");
+    //通常在场景模式中使用，使用turn_on与单独操作中的toggle区分
+    writeDeviceHistory(deviceId,"turn_off","off");
+
 }
 
 void MainWindow::turnOnCurtain(QPushButton* curtainButton)
@@ -646,6 +1037,7 @@ void MainWindow::on_SleepModeButton_clicked()
     // 6. 点击门锁按钮
     qDebug() << "点击门锁按钮";
     on_LockButton_clicked();
+    writeSceneHistory("SleepMode");
 }
 
 void MainWindow::turnOnAirConditionerWithSmartControlForBedroom()
@@ -812,6 +1204,7 @@ void MainWindow::executeWakeUpActions()
     }
     
     qDebug() << "起床操作执行完成";
+    writeSceneHistory("WakeUpMode");
 }
 
 void MainWindow::on_LightBackpushButton_clicked()
@@ -906,6 +1299,15 @@ void MainWindow::toggleLight(QPushButton* lightButton)
     
     // 更新主页面灯光数量
     updateMainPageLightStatus();
+
+    //记录灯光变化日志
+    //获取id
+    QString deviceId = lightButton->objectName().replace("button","");
+
+    QString actionType = "toggle";
+    QString actionValue = !isOn ? "on" : "off"; // 新的状态
+    writeDeviceHistory(deviceId,actionType,actionValue);
+    updateDeviceStatus(deviceId, "", "", actionValue);
 }
 
 void MainWindow::toggleCurtain(QPushButton* curtainButton)
@@ -939,6 +1341,12 @@ void MainWindow::toggleCurtain(QPushButton* curtainButton)
     
     // 更新主页面窗帘数量
     updateMainPageCurtainStatus();
+    //更新状态、写入日志
+    QString deviceId = curtainButton->objectName().replace("Button","");
+    QString actionType = "toggle";
+    QString actionValue = !isOpen?"open":"close";
+    writeDeviceHistory(deviceId,actionType,actionValue);
+    updateDeviceStatus(deviceId,"","",actionValue);
 }
 
 void MainWindow::updateMainPageLightStatus()
@@ -994,6 +1402,12 @@ void MainWindow::on_LivingroomAcButton_clicked()
         ui->LivingroomTemperaturecomboBox->setEnabled(false);
         qDebug() << "关空调:" << ui->LivingroomAcButton->objectName() << "新状态:关" ;
     }
+    //更新状态、写入日志
+    QString deviceId = "LivingroomAc";
+    QString actionType = "toggle";
+    QString actionValue = (status == "关") ? "on" : "off";
+    writeDeviceHistory(deviceId,actionType,actionValue);
+    updateDeviceStatus(deviceId,"","",actionValue);
 }
 
 
@@ -1018,6 +1432,11 @@ void MainWindow::on_BedroomAcButton_clicked()
         ui->BedroomTemperaturecomboBox->setEnabled(false);
         qDebug() << "关空调:" << ui->BedroomAcButton->objectName() << "新状态:关" ;
     }
+    QString deviceId = "BedroomAc";
+    QString actionType = "toggle";
+    QString actionValue = (status == "关") ? "on" : "off";
+    writeDeviceHistory(deviceId,actionType,actionValue);
+    updateDeviceStatus(deviceId,"","",actionValue);
 }
 
 

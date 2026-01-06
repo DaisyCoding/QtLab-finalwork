@@ -15,6 +15,10 @@
 #include <QString>
 #include <QDateTime>
 #include "timepickerdialog.h"
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include<QSqlError>
+#include<QDateTime>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -96,6 +100,15 @@ private:
     void updateCurrentTime();
     bool parseWeatherData(const QJsonObject& jsonObj);
 
+    //数据库相关
+    QSqlDatabase db;
+    bool initDatabase();
+    void writeDeviceHistory(const QString& deviceId, const QString& actionType, const QString& actionValue);
+    void updateDeviceStatus(const QString& deviceId, const QString& name, const QString& type, const QString& status);
+    void populateDefaultDevices();//向device表内插入设备
+    void populateDefaultScenes();
+    void writeSceneHistory(const QString &sceneId);
+
     Ui::MainWindow *ui;
     QLabel statusTimeLabel;
     QLabel statusWeatherLabel;
@@ -123,5 +136,6 @@ private:
     QDateTime wakeUpTime;
     QLabel *wakeUpStatusLabel;
     bool isWakeUpModeActive;
+
 };
 #endif // MAINWINDOW_H
