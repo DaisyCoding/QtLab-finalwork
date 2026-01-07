@@ -126,6 +126,8 @@ MainWindow::MainWindow(QWidget *parent)
     } else {
         qCritical() << "数据库初始化失败，日志功能将无法使用！";
     }
+    ui->stackedWidget->setCurrentIndex(0);
+
 }
 
 MainWindow::~MainWindow()
