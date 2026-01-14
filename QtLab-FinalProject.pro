@@ -11,11 +11,13 @@ CONFIG += c++17
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
-    timepickerdialog.cpp
+    timepickerdialog.cpp \
+    userdefinedscenedialog.cpp
 
 HEADERS += \
     mainwindow.h \
-    timepickerdialog.h
+    timepickerdialog.h \
+    userdefinedscenedialog.h
 
 FORMS += \
     mainwindow.ui

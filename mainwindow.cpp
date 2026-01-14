@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "userdefinedscenedialog.h"
 #include <QDebug>
 #include <QDateTime>
 #include <QJsonDocument>
@@ -154,6 +155,28 @@ void MainWindow::setupConnections()
     connect(ui->leavingHomeModeButton, &QPushButton::clicked, this, &MainWindow::on_leavingHomeModeButton_clicked);
     connect(ui->SleepModeButton, &QPushButton::clicked, this, &MainWindow::on_SleepModeButton_clicked);
     connect(ui->WakeUpModeButton,&QPushButton::clicked, this, &MainWindow::on_WakeUpModeButton_clicked);
+    
+    connect(ui->UserDefinedMode1Button, &QPushButton::clicked, this, &MainWindow::on_UserDefinedMode1Button_clicked);
+    connect(ui->UserDefinedMode2Button, &QPushButton::clicked, this, &MainWindow::on_UserDefinedMode2Button_clicked);
+    
+    // 设置自定义场景按钮的上下文菜单策略
+    ui->UserDefinedMode1Button->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->UserDefinedMode2Button->setContextMenuPolicy(Qt::CustomContextMenu);
+    
+    // 连接自定义场景按钮的右键菜单信号
+    connect(ui->UserDefinedMode1Button, &QPushButton::customContextMenuRequested, [this](const QPoint &pos) {
+        QMenu menu(this);
+        QAction *deleteAction = menu.addAction("删除自定义场景");
+        connect(deleteAction, &QAction::triggered, this, &MainWindow::deleteCustomScene1);
+        menu.exec(ui->UserDefinedMode1Button->mapToGlobal(pos));
+    });
+    
+    connect(ui->UserDefinedMode2Button, &QPushButton::customContextMenuRequested, [this](const QPoint &pos) {
+        QMenu menu(this);
+        QAction *deleteAction = menu.addAction("删除自定义场景");
+        connect(deleteAction, &QAction::triggered, this, &MainWindow::deleteCustomScene2);
+        menu.exec(ui->UserDefinedMode2Button->mapToGlobal(pos));
+    });
     // 删除闹钟按钮连接
     connect(ui->DeleteWakeUpAlarmButton, &QPushButton::clicked, this, &MainWindow::cancelWakeUpAlarm);
 
@@ -837,7 +860,7 @@ void MainWindow::turnOnLight(QPushButton* lightButton)
     }
 
     //记录灯光日志
-    QString deviceId = lightButton->objectName().replace("button","");
+    QString deviceId = lightButton->objectName().replace("Button","");
     //通常在场景模式中使用，使用turn_on与单独操作中的toggle区分
     writeDeviceHistory(deviceId,"turn_on","on");
 
@@ -865,6 +888,10 @@ void MainWindow::turnOffCurtain(QPushButton* curtainButton)
     } else {
         qDebug() << "窗帘已经是关闭状态:" << curtainButton->objectName();
     }
+    //记录窗帘日志
+    QString deviceId = curtainButton->objectName().replace("Button","");
+    writeDeviceHistory(deviceId,"turn_off","close");
+    updateDeviceStatus(deviceId,"","","close");
 }
 
 void MainWindow::turnOnAirConditionerWithSmartControl()
@@ -952,7 +979,7 @@ void MainWindow::turnOffLight(QPushButton* lightButton)
         qDebug() << "灯已经是关闭状态:" << lightButton->objectName();
     }
     //记录灯光日志
-    QString deviceId = lightButton->objectName().replace("button","");
+    QString deviceId = lightButton->objectName().replace("Button","");
     //通常在场景模式中使用，使用turn_on与单独操作中的toggle区分
     writeDeviceHistory(deviceId,"turn_off","off");
 
@@ -1304,7 +1331,7 @@ void MainWindow::toggleLight(QPushButton* lightButton)
 
     //记录灯光变化日志
     //获取id
-    QString deviceId = lightButton->objectName().replace("button","");
+    QString deviceId = lightButton->objectName().replace("Button","");
 
     QString actionType = "toggle";
     QString actionValue = !isOn ? "on" : "off"; // 新的状态
@@ -1360,6 +1387,7 @@ void MainWindow::updateMainPageLightStatus()
     }
     
     // 更新主页面灯光状态标签
+    qDebug()<<"lightsoncount大小"<<lightsOnCount;
     QString lightStatusText = QString("已打开灯光数：%1").arg(lightsOnCount);
     ui->Lightlabel->setText(lightStatusText);
     
@@ -1456,6 +1484,220 @@ void MainWindow::on_AllCloseCurtainButton_clicked()
         }
     }
 }
+
+void MainWindow::on_UserDefinedModeButton_clicked()
+{
+    qDebug() << "点击自定义场景按钮";
+    
+    // 创建自定义场景对话框
+    UserDefinedSceneDialog dialog(this);
+    
+    // 显示对话框并等待用户操作
+    if (dialog.exec() == QDialog::Accepted) {
+        // 获取用户选择的设备和场景名称
+        QMap<QString, int> selectedDevices = dialog.getSelectedDevices();
+        QString sceneName = dialog.getSceneName();
+        
+        qDebug() << "用户选择的场景名称:" << sceneName;
+        qDebug() << "用户选择的设备数量:" << selectedDevices.size();
+        
+        // 根据已有自定义场景的数量，保存到相应的成员变量中
+        if (customScene1Name.isEmpty()) {
+            // 保存到自定义模式1
+            customScene1Name = sceneName;
+            customScene1Devices = selectedDevices;
+            ui->UserDefinedMode1Button->setText(sceneName);
+            ui->UserDefinedMode1Button->setEnabled(true);
+            qDebug() << "保存到自定义模式1";
+        } else if (customScene2Name.isEmpty()) {
+            // 保存到自定义模式2
+            customScene2Name = sceneName;
+            customScene2Devices = selectedDevices;
+            ui->UserDefinedMode2Button->setText(sceneName);
+            ui->UserDefinedMode2Button->setEnabled(true);
+            qDebug() << "保存到自定义模式2";
+        } else {
+            // 已经有两个自定义场景了，提示用户
+            QMessageBox::information(this, "提示", "已经有两个自定义场景了，请先删除其中一个再添加新的场景。");
+        }
+    } else {
+        qDebug() << "用户取消了自定义场景设置";
+    }
+}
+
+void MainWindow::on_UserDefinedMode1Button_clicked()
+{
+    qDebug() << "执行自定义模式1";
+    
+    if (customScene1Name.isEmpty()) {
+        qDebug() << "自定义模式1尚未配置";
+        return;
+    }
+    
+    // 执行自定义模式1的设备操作
+    executeCustomScene(customScene1Devices);
+    writeSceneHistory("UserDefinedMode1");
+}
+
+void MainWindow::on_UserDefinedMode2Button_clicked()
+{
+    qDebug() << "执行自定义模式2";
+    
+    if (customScene2Name.isEmpty()) {
+        qDebug() << "自定义模式2尚未配置";
+        return;
+    }
+    
+    // 执行自定义模式2的设备操作
+    executeCustomScene(customScene2Devices);
+    writeSceneHistory("UserDefinedMode2");
+}
+
+void MainWindow::deleteCustomScene1()
+{
+    qDebug() << "删除自定义模式1";
+    
+    // 清除场景名称和设备状态
+    customScene1Name.clear();
+    customScene1Devices.clear();
+    
+    // 重置按钮文本和状态
+    ui->UserDefinedMode1Button->setText("自定义模式1");
+    ui->UserDefinedMode1Button->setEnabled(false);
+}
+
+void MainWindow::deleteCustomScene2()
+{
+    qDebug() << "删除自定义模式2";
+    
+    // 清除场景名称和设备状态
+    customScene2Name.clear();
+    customScene2Devices.clear();
+    
+    // 重置按钮文本和状态
+    ui->UserDefinedMode2Button->setText("自定义模式2");
+    ui->UserDefinedMode2Button->setEnabled(false);
+}
+
+void MainWindow::executeCustomScene(const QMap<QString, int> &deviceStates)
+{
+    qDebug() << "执行自定义场景，设备数量:" << deviceStates.size();
+    
+    // 遍历设备状态，执行相应的操作
+    for (auto it = deviceStates.begin(); it != deviceStates.end(); ++it) {
+        QString deviceName = it.key();
+        int status = it.value();
+        
+        qDebug() << "设备:" << deviceName << "目标状态:" << status;
+        
+        // 根据设备名称和状态执行相应的操作
+        if (deviceName == "客厅灯") {
+            if (status == 1) {
+                turnOnLight(ui->LivingroomLightButton);
+            } else if (status == 2) {
+                turnOffLight(ui->LivingroomLightButton);
+            }
+            // status == 0 时保持不变，不执行任何操作
+        } else if (deviceName == "厨房灯") {
+            if (status == 1) {
+                turnOnLight(ui->KitchenLightButton);
+            } else if (status == 2) {
+                turnOffLight(ui->KitchenLightButton);
+            }
+        } else if (deviceName == "卧室灯") {
+            if (status == 1) {
+                turnOnLight(ui->BedroomLightButton);
+            } else if (status == 2) {
+                turnOffLight(ui->BedroomLightButton);
+            }
+        } else if (deviceName == "浴室灯") {
+            if (status == 1) {
+                turnOnLight(ui->BathroomLightButton);
+            } else if (status == 2) {
+                turnOffLight(ui->BathroomLightButton);
+            }
+        } else if (deviceName == "书房灯") {
+            if (status == 1) {
+                turnOnLight(ui->StudyroomLightButton);
+            } else if (status == 2) {
+                turnOffLight(ui->StudyroomLightButton);
+            }
+        } else if (deviceName == "阳台灯") {
+            if (status == 1) {
+                turnOnLight(ui->BalconyLightButton);
+            } else if (status == 2) {
+                turnOffLight(ui->BalconyLightButton);
+            }
+        } else if (deviceName == "餐厅灯") {
+            if (status == 1) {
+                turnOnLight(ui->DiningroomLightButton);
+            } else if (status == 2) {
+                turnOffLight(ui->DiningroomLightButton);
+            }
+        } else if (deviceName == "客厅窗帘") {
+            if (status == 1) {
+                turnOnCurtain(ui->LivingroomCurtainButton);
+            } else if (status == 2) {
+                turnOffCurtain(ui->LivingroomCurtainButton);
+            }
+            // status == 0 时保持不变
+        } else if (deviceName == "卧室窗帘") {
+            if (status == 1) {
+                turnOnCurtain(ui->BedroomCurtainButton);
+            } else if (status == 2) {
+                turnOffCurtain(ui->BedroomCurtainButton);
+            }
+            // status == 0 时保持不变
+        } else if (deviceName == "客厅空调") {
+            if (status == 1) {
+                if (ui->LivingroomAcButton->text() == "关") {
+                    ui->LivingroomAcButton->setText("开");
+                    ui->LivingroomAcButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+                    ui->LivingroomAcModecomboBox->setEnabled(true);
+                    ui->LivingroomTemperaturecomboBox->setEnabled(true);
+                    qDebug() << "开客厅空调";
+                }
+            } else if (status == 2) {
+                if (ui->LivingroomAcButton->text() == "开") {
+                    ui->LivingroomAcButton->setText("关");
+                    ui->LivingroomAcButton->setStyleSheet("");
+                    ui->LivingroomAcModecomboBox->setEnabled(false);
+                    ui->LivingroomTemperaturecomboBox->setEnabled(false);
+                    qDebug() << "关客厅空调";
+                }
+            }
+            // status == 0 时保持不变
+        } else if (deviceName == "卧室空调") {
+            if (status == 1) {
+                if (ui->BedroomAcButton->text() == "关") {
+                    ui->BedroomAcButton->setText("开");
+                    ui->BedroomAcButton->setStyleSheet("background-color: #FFD700; color: black; font-weight: bold;");
+                    ui->BedroomAcModecomboBox->setEnabled(true);
+                    ui->BedroomTemperaturecomboBox->setEnabled(true);
+                    qDebug() << "开卧室空调";
+                }
+            } else if (status == 2) {
+                if (ui->BedroomAcButton->text() == "开") {
+                    ui->BedroomAcButton->setText("关");
+                    ui->BedroomAcButton->setStyleSheet("");
+                    ui->BedroomAcModecomboBox->setEnabled(false);
+                    ui->BedroomTemperaturecomboBox->setEnabled(false);
+                    qDebug() << "关卧室空调";
+                }
+            }
+            // status == 0 时保持不变
+        } else if (deviceName == "门锁") {
+            if (status == 1 || status == 2) {
+                // 门锁的操作比较特殊，直接调用现有的槽函数
+                on_LockButton_clicked();
+            }
+            // status == 0 时保持不变
+        }
+    }
+    
+    qDebug() << "自定义场景执行完成";
+}
+
 
 
 

@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QLabel>
 #include <QPushButton>
+#include <QMap>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -15,10 +16,14 @@
 #include <QString>
 #include <QDateTime>
 #include "timepickerdialog.h"
+#include "userdefinedscenedialog.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include<QSqlError>
 #include<QDateTime>
+#include <QMessageBox>
+#include <QMenu>
+#include <QAction>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -42,6 +47,13 @@ private slots:
     void on_leavingHomeModeButton_clicked();
     void on_SleepModeButton_clicked();
     void on_WakeUpModeButton_clicked();
+    void on_UserDefinedModeButton_clicked();
+    void on_UserDefinedMode1Button_clicked();
+    void on_UserDefinedMode2Button_clicked();
+    
+    // 删除自定义场景的槽函数
+    void deleteCustomScene1();
+    void deleteCustomScene2();
     
     // 返回按钮槽函数
     void on_LightBackpushButton_clicked();
@@ -76,6 +88,7 @@ private slots:
     void turnOnAirConditionerWithSmartControlForBedroom();
     void executeWakeUpActions();
     void cancelWakeUpAlarm();
+    void executeCustomScene(const QMap<QString, int> &deviceStates); // 0: 保持不变, 1: 开, 2: 关
 
     // 网络更新槽函数
     void updateWeatherFromNetwork();
@@ -134,6 +147,12 @@ private:
     QDateTime wakeUpTime;
     QLabel *wakeUpStatusLabel;
     bool isWakeUpModeActive;
+
+    // 自定义场景相关成员变量
+    QMap<QString, int> customScene1Devices; // 0: 保持不变, 1: 开, 2: 关
+    QMap<QString, int> customScene2Devices; // 0: 保持不变, 1: 开, 2: 关
+    QString customScene1Name;
+    QString customScene2Name;
 
 };
 #endif // MAINWINDOW_H
