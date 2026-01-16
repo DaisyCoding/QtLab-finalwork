@@ -144,20 +144,6 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupConnections()
 {
-    // 设备按钮信号槽连接
-    connect(ui->LightButton, &QPushButton::clicked, this, &MainWindow::on_LightButton_clicked);
-    connect(ui->AcButton, &QPushButton::clicked, this, &MainWindow::on_AcButton_clicked);
-    connect(ui->CurtainButton, &QPushButton::clicked, this, &MainWindow::on_CurtainButton_clicked);
-    connect(ui->LockButton, &QPushButton::clicked, this, &MainWindow::on_LockButton_clicked);
-
-    // 场景按钮信号槽连接
-    connect(ui->comingHomeModeButton, &QPushButton::clicked, this, &MainWindow::on_comingHomeModeButton_clicked);
-    connect(ui->leavingHomeModeButton, &QPushButton::clicked, this, &MainWindow::on_leavingHomeModeButton_clicked);
-    connect(ui->SleepModeButton, &QPushButton::clicked, this, &MainWindow::on_SleepModeButton_clicked);
-    
-    connect(ui->UserDefinedMode1Button, &QPushButton::clicked, this, &MainWindow::on_UserDefinedMode1Button_clicked);
-    connect(ui->UserDefinedMode2Button, &QPushButton::clicked, this, &MainWindow::on_UserDefinedMode2Button_clicked);
-    
     // 设置自定义场景按钮的上下文菜单策略
     ui->UserDefinedMode1Button->setContextMenuPolicy(Qt::CustomContextMenu);
     ui->UserDefinedMode2Button->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -179,10 +165,6 @@ void MainWindow::setupConnections()
     // 删除闹钟按钮连接
     connect(ui->DeleteWakeUpAlarmButton, &QPushButton::clicked, this, &MainWindow::cancelWakeUpAlarm);
 
-    // 返回按钮信号槽连接
-    connect(ui->LightBackpushButton, &QPushButton::clicked, this, &MainWindow::on_LightBackpushButton_clicked);
-    connect(ui->CurtainBackpushButton, &QPushButton::clicked, this, &MainWindow::on_CurtainBackpushButton_clicked);
-    connect(ui->AcBackpushButton, &QPushButton::clicked, this, &MainWindow::on_AcBackpushButton_clicked);
 
     // 使用 lambda 表达式处理灯光按钮点击事件，避免重复调用
     connect(ui->LivingroomLightButton, &QPushButton::clicked, [this]() {
@@ -213,9 +195,6 @@ void MainWindow::setupConnections()
         toggleLight(ui->DiningroomLightButton);
     });
     
-    // 全开/全关按钮信号槽连接
-    connect(ui->AllturnOnLightButton, &QPushButton::clicked, this, &MainWindow::on_AllturnOnLightButton_clicked);
-    connect(ui->AllturnOffLightButton, &QPushButton::clicked, this, &MainWindow::on_AllturnOffLightButton_clicked);
 
     // 窗帘按钮信号槽连接
     connect(ui->LivingroomCurtainButton, &QPushButton::clicked, [this]() {
@@ -226,9 +205,6 @@ void MainWindow::setupConnections()
         toggleCurtain(ui->BedroomCurtainButton);
     });
     
-    // 全开/全关窗帘按钮信号槽连接
-    connect(ui->AllOpenCurtainButton, &QPushButton::clicked, this, &MainWindow::on_AllOpenCurtainButton_clicked);
-    connect(ui->AllCloseCurtainButton, &QPushButton::clicked, this, &MainWindow::on_AllCloseCurtainButton_clicked);
 
     // 网络请求完成信号连接
     connect(networkManager, &QNetworkAccessManager::finished, this, &MainWindow::onNetworkReplyFinished);
