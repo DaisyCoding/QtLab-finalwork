@@ -154,7 +154,6 @@ void MainWindow::setupConnections()
     connect(ui->comingHomeModeButton, &QPushButton::clicked, this, &MainWindow::on_comingHomeModeButton_clicked);
     connect(ui->leavingHomeModeButton, &QPushButton::clicked, this, &MainWindow::on_leavingHomeModeButton_clicked);
     connect(ui->SleepModeButton, &QPushButton::clicked, this, &MainWindow::on_SleepModeButton_clicked);
-    connect(ui->WakeUpModeButton,&QPushButton::clicked, this, &MainWindow::on_WakeUpModeButton_clicked);
     
     connect(ui->UserDefinedMode1Button, &QPushButton::clicked, this, &MainWindow::on_UserDefinedMode1Button_clicked);
     connect(ui->UserDefinedMode2Button, &QPushButton::clicked, this, &MainWindow::on_UserDefinedMode2Button_clicked);
@@ -1113,6 +1112,8 @@ void MainWindow::turnOnAirConditionerWithSmartControlForBedroom()
 
 void MainWindow::on_WakeUpModeButton_clicked()
 {
+    static int clickCount = 0;
+        qDebug() << "执行起床模式，计数：" << ++clickCount; // 点击一次如果输出2、4、6...就是函数被执行两次
     qDebug() << "执行起床模式";
     
     TimePickerDialog dialog(this);
